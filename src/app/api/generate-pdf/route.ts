@@ -121,15 +121,53 @@ export async function POST(req: Request) {
                 }
             }
 
+            // Collapse X's empty scroll-reservation spacers (they add blank
+            // trailing pages). Only divs with no text and no media — content
+            // wrappers keep their explicit heights.
+            document.querySelectorAll('div[style*="height"], div[style*="min-height"]').forEach((div) => {
+                if (div instanceof HTMLElement
+                    && !(div.textContent || '').trim()
+                    && !div.querySelector('img, video, svg, canvas')) {
+                    div.style.height = 'auto';
+                    div.style.minHeight = '0';
+                }
+            });
+
             const style = document.createElement('style');
             style.textContent = `
                 body { background: #fff !important; }
                 article { font-family: sans-serif !important; }
                 div[data-testid="tweetText"] { font-size: 15px !important; line-height: 1.5 !important; }
-                /* A4改ページで画像・動画・コードブロックが途中で切れないように */
-                img, video, figure, pre, blockquote { break-inside: avoid; }
+                /* A4改ページで画像・動画・コードブロックが途中で切れないように。
+                   Xの画像は絶対配置なので、通常フローにいるラッパー側に効かせる */
+                img, video, figure, pre, blockquote,
+                [data-testid="tweetPhoto"], [data-testid="videoComponent"],
+                [data-testid="card.wrapper"] { break-inside: avoid; }
             `;
             document.head.appendChild(style);
+        });
+
+        // Clip everything below the last real content — X leaves ~3000px of
+        // empty reserved space at the bottom, which becomes blank PDF pages
+        await page.evaluate(() => {
+            let last = 0;
+            for (const el of document.querySelectorAll('body *')) {
+                const style = window.getComputedStyle(el);
+                if (style.display === 'none' || style.visibility === 'hidden') continue;
+                const hasOwnText = Array.from(el.childNodes).some(
+                    (n) => n.nodeType === Node.TEXT_NODE && (n.textContent || '').trim()
+                );
+                if (hasOwnText || ['IMG', 'VIDEO', 'CANVAS'].includes(el.tagName)) {
+                    last = Math.max(last, el.getBoundingClientRect().bottom + window.scrollY);
+                }
+            }
+            if (last > 0) {
+                const h = Math.ceil(last) + 20;
+                document.documentElement.style.height = h + 'px';
+                document.documentElement.style.overflow = 'hidden';
+                document.body.style.height = h + 'px';
+                document.body.style.overflow = 'hidden';
+            }
         });
 
         const pdfBuffer = await page.pdf({

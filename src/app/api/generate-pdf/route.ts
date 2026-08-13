@@ -70,6 +70,15 @@ export async function POST(req: Request) {
             });
         });
 
+        // Wait for lazy-loaded images to finish (X articles load screenshots on scroll)
+        await Promise.race([
+            page.evaluate(() => Promise.all(
+                Array.from(document.images)
+                    .filter(img => !img.complete)
+                    .map(img => new Promise(resolve => { img.onload = img.onerror = resolve; }))
+            )),
+            new Promise(resolve => setTimeout(resolve, 10000)),
+        ]);
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Clean up UI: remove sidebars, nav, login prompts
@@ -108,8 +117,6 @@ export async function POST(req: Request) {
                 body { background: #fff !important; }
                 article { font-family: sans-serif !important; }
                 div[data-testid="tweetText"] { font-size: 15px !important; line-height: 1.5 !important; }
-                div[style*="height"], div[style*="min-height"] { height: auto !important; min-height: 0 !important; }
-                article div:empty { display: none !important; }
             `;
             document.head.appendChild(style);
         });

@@ -20,9 +20,12 @@ export async function POST(req: Request) {
 
         const page = await browser.newPage();
         await page.setViewport({ width: 1280, height: 900 });
+        // Mask headless UA (X blocks "HeadlessChrome")
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36');
 
-        // Set X auth cookies if provided
-        if (authToken) {
+        // Set X auth cookies if provided (skip placeholder values — an invalid
+        // auth_token makes X error out instead of falling back to guest view)
+        if (authToken && authToken.length > 20) {
             await page.setCookie(
                 { name: 'auth_token', value: authToken, domain: '.x.com', path: '/' },
                 ...(ct0 ? [{ name: 'ct0', value: ct0, domain: '.x.com', path: '/' }] : [])

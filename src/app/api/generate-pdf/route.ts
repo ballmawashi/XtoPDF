@@ -126,17 +126,16 @@ export async function POST(req: Request) {
                 body { background: #fff !important; }
                 article { font-family: sans-serif !important; }
                 div[data-testid="tweetText"] { font-size: 15px !important; line-height: 1.5 !important; }
+                /* A4改ページで画像・動画・コードブロックが途中で切れないように */
+                img, video, figure, pre, blockquote { break-inside: avoid; }
             `;
             document.head.appendChild(style);
         });
 
-        const bodyHeight = await page.evaluate(() => document.body.scrollHeight);
-
         const pdfBuffer = await page.pdf({
-            width: '900px',
-            height: `${bodyHeight + 40}px`,
+            format: 'A4',
             printBackground: true,
-            margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
+            margin: { top: '15mm', bottom: '15mm', left: '12mm', right: '12mm' }
         });
 
         await browser.close();

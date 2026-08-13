@@ -98,6 +98,15 @@ export async function POST(req: Request) {
             // Bottom bar on mobile
             hide('[data-testid="BottomBar"]');
 
+            // X's guest article view prepends a degraded plain-text copy of the
+            // whole article as one huge <p> (no paragraph breaks) above the
+            // properly formatted version — hide it
+            document.querySelectorAll('article p').forEach((p) => {
+                if (p instanceof HTMLElement && (p.textContent || '').length > 2000) {
+                    p.style.display = 'none';
+                }
+            });
+
             // Expand primary column to full width
             const primaryColumn = document.querySelector('[data-testid="primaryColumn"]');
             if (primaryColumn instanceof HTMLElement) {

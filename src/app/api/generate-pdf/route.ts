@@ -129,7 +129,8 @@ export async function POST(req: Request) {
         headers.set('Content-Type', 'application/pdf');
         headers.set('Content-Disposition', 'attachment; filename="article.pdf"');
 
-        return new NextResponse(pdfBuffer, { status: 200, headers });
+        // page.pdf() returns Uint8Array<ArrayBufferLike>, which BodyInit rejects — copy into a plain ArrayBuffer
+        return new NextResponse(new Uint8Array(pdfBuffer).buffer, { status: 200, headers });
 
     } catch (error) {
         console.error('PDF Generation Error:', error);

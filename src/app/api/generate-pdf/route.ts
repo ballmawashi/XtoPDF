@@ -150,10 +150,19 @@ export async function POST(req: Request) {
         // Clip everything below the last real content — X leaves ~3000px of
         // empty reserved space at the bottom, which becomes blank PDF pages
         await page.evaluate(() => {
+            // fixed/sticky elements (nav, account widget, footer) sit at viewport
+            // coordinates — when scrolled to the bottom they'd read as the
+            // lowest content and inflate the clamp, so exclude them
+            const fixedRoots: Element[] = [];
+            for (const el of document.querySelectorAll('body *')) {
+                const pos = window.getComputedStyle(el).position;
+                if (pos === 'fixed' || pos === 'sticky') fixedRoots.push(el);
+            }
             let last = 0;
             for (const el of document.querySelectorAll('body *')) {
                 const style = window.getComputedStyle(el);
                 if (style.display === 'none' || style.visibility === 'hidden') continue;
+                if (fixedRoots.some((root) => root.contains(el))) continue;
                 const hasOwnText = Array.from(el.childNodes).some(
                     (n) => n.nodeType === Node.TEXT_NODE && (n.textContent || '').trim()
                 );

@@ -19,7 +19,10 @@ export async function POST(req: Request) {
         });
 
         const page = await browser.newPage();
-        await page.setViewport({ width: 1280, height: 900 });
+        // Match the A4 printable width (210mm - 12mm*2 ≈ 703px @96dpi) so X lays
+        // the page out at exactly the width it will be printed at — no
+        // shrink-to-fit, no clipping at the right edge
+        await page.setViewport({ width: 703, height: 900 });
         // Mask headless UA (X blocks "HeadlessChrome")
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36');
 
@@ -120,18 +123,6 @@ export async function POST(req: Request) {
                     count++;
                 }
             }
-
-            // Collapse X's empty scroll-reservation spacers (they add blank
-            // trailing pages). Only divs with no text and no media — content
-            // wrappers keep their explicit heights.
-            document.querySelectorAll('div[style*="height"], div[style*="min-height"]').forEach((div) => {
-                if (div instanceof HTMLElement
-                    && !(div.textContent || '').trim()
-                    && !div.querySelector('img, video, svg, canvas')) {
-                    div.style.height = 'auto';
-                    div.style.minHeight = '0';
-                }
-            });
 
             const style = document.createElement('style');
             style.textContent = `
